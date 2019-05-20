@@ -242,6 +242,7 @@ public class TestUtil {
     }
 
     /**
+     * [low...hi)
      * Mock SeqScan class for unit testing.
      */
     public static class MockScan implements DbIterator {
