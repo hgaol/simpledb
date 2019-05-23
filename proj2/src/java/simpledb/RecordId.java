@@ -4,6 +4,7 @@ import java.io.Serializable;
 import java.util.Objects;
 
 /**
+ * 实际上存储的就是哪一页上的第几条数据
  * A RecordId is a reference to a specific tuple on a specific page of a
  * specific table.
  */
@@ -11,8 +12,9 @@ public class RecordId implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
+    // 哪一个页上
     private PageId pid;
-    // slot id
+    // 第几个
     private int tupleno;
 
     /**

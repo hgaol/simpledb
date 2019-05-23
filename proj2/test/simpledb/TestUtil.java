@@ -371,6 +371,24 @@ public class TestUtil {
         }
     }
 
+    public static TupleDesc getTupleDesc(TupleDesc tupleDesc, int gindex, int aindex) {
+        Type[] types;
+        String[] names;
+        String afieldName = tupleDesc.getFieldName(aindex);
+        ;
+        String gfieldName = tupleDesc.getFieldName(gindex);
+
+        if (gindex == Aggregator.NO_GROUPING) {
+            types = new Type[]{Type.INT_TYPE};
+            names = new String[]{afieldName};
+        } else {
+            types = new Type[]{tupleDesc.getFieldType(gindex), Type.INT_TYPE};
+            names = new String[]{gfieldName, afieldName};
+        }
+
+        return new TupleDesc(types, names);
+    }
+
     /** JUnit fixture that creates a heap file and cleans it up afterward. */
     public static abstract class CreateHeapFile {
         protected CreateHeapFile() {

@@ -31,7 +31,7 @@ public interface Aggregator extends Serializable {
         public static Op getOp(int i) {
             return values()[i];
         }
-        
+
         public String toString()
         {
         	if (this==MIN)
@@ -62,5 +62,5 @@ public interface Aggregator extends Serializable {
      * @see simpledb.TupleIterator for a possible helper
      */
     public DbIterator iterator();
-    
+
 }

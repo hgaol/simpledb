@@ -3,6 +3,8 @@ package simpledb;
 import java.io.*;
 import java.util.*;
 
+import static com.sun.tools.javac.jvm.ByteCodes.ret;
+
 /**
  * HeapFile主要保存了某个table的TupleDesc，以及文件实例
  * HeapFile is an implementation of a DbFile that stores a collection of tuples
@@ -18,6 +20,7 @@ public class HeapFile implements DbFile {
 
     private TupleDesc td;
     private File f;
+    private int numPage;
 
     /**
      * Constructs a heap file backed by the specified file.
@@ -29,6 +32,7 @@ public class HeapFile implements DbFile {
         // some code goes here
         this.td = td;
         this.f = f;
+        this.numPage = numPages();
     }
 
     /**
@@ -89,6 +93,11 @@ public class HeapFile implements DbFile {
     public void writePage(Page page) throws IOException {
         // some code goes here
         // not necessary for proj1
+        try (RandomAccessFile raf = new RandomAccessFile(f, "rw")) {
+            raf.seek(page.getId().pageNumber() * BufferPool.PAGE_SIZE);
+            byte[] data = page.getPageData();
+            raf.write(data);
+        }
     }
 
     /**
@@ -96,24 +105,47 @@ public class HeapFile implements DbFile {
      */
     public int numPages() {
         // some code goes here
-        try (RandomAccessFile raf = new RandomAccessFile(getFile(), "r")) {
-            // page在HeapFile的偏移量
-            long ret = raf.length() / BufferPool.PAGE_SIZE;
-            if (raf.length() % BufferPool.PAGE_SIZE != 0) {
+        if (numPage == 0) {
+            long ret = getFile().length() / BufferPool.PAGE_SIZE;
+            if (getFile().length() % BufferPool.PAGE_SIZE != 0) {
                 ret++;
             }
-            return (int) ret;
-        } catch (IOException e) {
-            e.printStackTrace();
+            numPage = (int) ret;
         }
-        return 0;
+        return numPage;
     }
 
     // see DbFile.java for javadocs
     public ArrayList<Page> insertTuple(TransactionId tid, Tuple t)
             throws DbException, IOException, TransactionAbortedException {
         // some code goes here
-        return null;
+        ArrayList<Page> affectedPages = new ArrayList<>();
+        for (int i = 0; i < numPages(); i++) {
+            HeapPageId pid = new HeapPageId(getId(), i);
+            HeapPage page = (HeapPage) Database.getBufferPool().getPage(tid, pid, Permissions.READ_WRITE);
+            if (page.getNumEmptySlots() != 0) {
+                //page的insertTuple已经负责修改tuple信息表明其存储在该page上
+                page.insertTuple(t);
+                page.markDirty(true, tid);
+                affectedPages.add(page);
+                break;
+            }
+        }
+        if (affectedPages.size() == 0) {
+            //说明page都已经满了
+            //创建一个新的空白的Page
+            HeapPageId npid = new HeapPageId(getId(), numPages());
+            HeapPage blankPage = new HeapPage(npid, HeapPage.createEmptyPageData());
+            numPage++;
+            //将其写入磁盘
+            writePage(blankPage);
+            //通过BufferPool来访问该新的page
+            HeapPage newPage = (HeapPage) Database.getBufferPool().getPage(tid, npid, Permissions.READ_WRITE);
+            newPage.insertTuple(t);
+            newPage.markDirty(true, tid);
+            affectedPages.add(newPage);
+        }
+        return affectedPages;
         // not necessary for proj1
     }
 
@@ -121,7 +153,18 @@ public class HeapFile implements DbFile {
     public Page deleteTuple(TransactionId tid, Tuple t) throws DbException,
             TransactionAbortedException {
         // some code goes here
-        return null;
+        PageId pid = t.getRecordId().getPageId();
+        HeapPage affectedPage = null;
+        for (int i = 0; i < numPages(); i++) {
+            if (i == pid.pageNumber()) {
+                affectedPage = (HeapPage) Database.getBufferPool().getPage(tid, pid, Permissions.READ_WRITE);
+                affectedPage.deleteTuple(t);
+            }
+        }
+        if (affectedPage == null) {
+            throw new DbException("tuple " + t + " is not in this table");
+        }
+        return affectedPage;
         // not necessary for proj1
     }
 

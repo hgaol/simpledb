@@ -7,7 +7,9 @@ import java.util.Objects;
  */
 public class HeapPageId implements PageId {
 
+    // 实际上是file的path的hashcode
     private int tableId;
+    // 在file中的第几个page
     private int pgNo;
 
     /**
