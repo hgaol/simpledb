@@ -37,7 +37,7 @@ public class DeleteTest extends FilterBase {
             // Deleted zero tuples: all tuples still in table
             expectedTuples = createdTuples;
         } else {
-            assert result == createdTuples.size();
+            assertTrue(result == createdTuples.size());
             expectedTuples = new ArrayList<ArrayList<Integer>>();
         }
         SystemTestUtil.matchTuples(table, tid, expectedTuples);

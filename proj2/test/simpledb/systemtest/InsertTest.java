@@ -2,23 +2,26 @@ package simpledb.systemtest;
 
 import java.io.IOException;
 import java.util.ArrayList;
+
 import simpledb.*;
 
 import static org.junit.Assert.*;
+
 import org.junit.Test;
 
 public class InsertTest extends SimpleDbTestBase {
+
     private void validateInsert(int columns, int sourceRows, int destinationRows)
-                throws DbException, IOException, TransactionAbortedException {
+            throws DbException, IOException, TransactionAbortedException {
         // Create the two tables
         ArrayList<ArrayList<Integer>> sourceTuples = new ArrayList<ArrayList<Integer>>();
         HeapFile source = SystemTestUtil.createRandomHeapFile(
                 columns, sourceRows, null, sourceTuples);
-        assert sourceTuples.size() == sourceRows;
+        assertTrue(sourceTuples.size() == sourceRows);
         ArrayList<ArrayList<Integer>> destinationTuples = new ArrayList<ArrayList<Integer>>();
         HeapFile destination = SystemTestUtil.createRandomHeapFile(
                 columns, destinationRows, null, destinationTuples);
-        assert destinationTuples.size() == destinationRows;
+        assertTrue(destinationTuples.size() == destinationRows);
 
         // Insert source into destination
         TransactionId tid = new TransactionId();
@@ -40,6 +43,8 @@ public class InsertTest extends SimpleDbTestBase {
 
         // As part of the same transaction, scan the table
         sourceTuples.addAll(destinationTuples);
+        // 这里相等是因为都在Catalog的内存中，并没有真正从磁盘上获取
+        // 调试发现磁盘上还是空的
         SystemTestUtil.matchTuples(destination, tid, sourceTuples);
 
         // As part of a different transaction, scan the table
@@ -48,27 +53,33 @@ public class InsertTest extends SimpleDbTestBase {
         SystemTestUtil.matchTuples(destination, sourceTuples);
     }
 
-    @Test public void testEmptyToEmpty()
+    @Test
+    public void testEmptyToEmpty()
             throws IOException, DbException, TransactionAbortedException {
         validateInsert(3, 0, 0);
     }
 
-    @Test public void testEmptyToOne()
+    @Test
+    public void testEmptyToOne()
             throws IOException, DbException, TransactionAbortedException {
         validateInsert(8, 0, 1);
     }
 
-    @Test public void testOneToEmpty()
+    @Test
+    public void testOneToEmpty()
             throws IOException, DbException, TransactionAbortedException {
         validateInsert(3, 1, 0);
     }
 
-    @Test public void testOneToOne()
+    @Test
+    public void testOneToOne()
             throws IOException, DbException, TransactionAbortedException {
         validateInsert(1, 1, 1);
     }
 
-    /** Make test compatible with older version of ant. */
+    /**
+     * Make test compatible with older version of ant.
+     */
     public static junit.framework.Test suite() {
         return new junit.framework.JUnit4TestAdapter(InsertTest.class);
     }

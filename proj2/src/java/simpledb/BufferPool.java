@@ -121,6 +121,8 @@ public class BufferPool {
     }
 
     /**
+     * 最终会调用HeapPage的insertTuple方法，但是这里并没有flush到磁盘上，只是在内存上改变了而已
+     * <p>
      * Add a tuple to the specified table behalf of transaction tid.  Will
      * acquire a write lock on the page the tuple is added to(Lock
      * acquisition is not needed for lab2). May block if the lock cannot
@@ -138,6 +140,12 @@ public class BufferPool {
             throws DbException, IOException, TransactionAbortedException {
         // some code goes here
         // not necessary for proj1
+        HeapFile table = (HeapFile) Database.getCatalog().getDbFile(tableId);
+        ArrayList<Page> affectedPages = table.insertTuple(tid, t);
+        for (Page page : affectedPages) {
+            // 这一步其实已经做过了
+            page.markDirty(true, tid);
+        }
     }
 
     /**
@@ -157,9 +165,14 @@ public class BufferPool {
             throws DbException, TransactionAbortedException {
         // some code goes here
         // not necessary for proj1
+        int tableId = t.getRecordId().getPageId().getTableId();
+        HeapFile table = (HeapFile) Database.getCatalog().getDbFile(tableId);
+        Page affectedPage = table.deleteTuple(tid, t);
+        affectedPage.markDirty(true, tid);
     }
 
     /**
+     * NOTE(hgao): 刷新到磁盘
      * Flush all dirty pages to disk.
      * NB: Be careful using this routine -- it writes dirty data to disk so will
      * break simpledb if running in NO STEAL mode.
