@@ -11,6 +11,7 @@ import junit.framework.Assert;
 import simpledb.*;
 
 /**
+ * 每个页是4096B，也就是4KB，4 * 16 = 64KB
  * Creates a heap file with 1024*500 tuples with two integer fields each.  Clears the buffer pool,
  * and performs a sequential scan through all of the pages.  If the growth in JVM usage
  * is greater than 2 MB due to the scan, the test fails.  Otherwise, the page eviction policy seems
@@ -33,10 +34,13 @@ public class EvictionTest extends SimpleDbTestBase {
         }
         System.out.println("EvictionTest scan complete, testing memory usage of scan");
         long endMem = SystemTestUtil.getMemoryFootprint();
+        long memKBDiff = (endMem - beginMem) / (1<<10);
         long memDiff = (endMem - beginMem) / (1<<20);
         if (memDiff > MEMORY_LIMIT_IN_MB) {
             Assert.fail("Did not evict enough pages.  Scan took " + memDiff + " MB of RAM, when limit was " + MEMORY_LIMIT_IN_MB);
         }
+        System.out.println(Database.getBufferPool().cacheSize());
+        System.out.println("memory usage of scan is " + memKBDiff + " KB");
     }
 
     public static void insertRow(HeapFile f, Transaction t) throws DbException,

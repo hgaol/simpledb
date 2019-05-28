@@ -26,7 +26,9 @@ public class BufferPool {
     public static final int DEFAULT_PAGES = 50;
 
     private int maxPages;
-    private Map<PageId, Page> id2page;
+
+//    private Map<PageId, Page> id2page;
+    private LRUCache<PageId, Page> id2page;
 
     /**
      * Creates a BufferPool that caches up to numPages pages.
@@ -36,7 +38,8 @@ public class BufferPool {
     public BufferPool(int numPages) {
         // some code goes here
         maxPages = numPages;
-        id2page = new HashMap<>(maxPages);
+        // 不使用hashmap了，使用lru cache
+        id2page = new LRUCache<>(maxPages);
     }
 
     /**
@@ -57,21 +60,29 @@ public class BufferPool {
     public Page getPage(TransactionId tid, PageId pid, Permissions perm)
             throws TransactionAbortedException, DbException {
         // some code goes here
-        // todo: 18.10.22
         // 命中返回，未命中则加载
-        if (id2page.containsKey(pid)) {
-            return id2page.get(pid);
+        Page page = id2page.get(pid);
+        if (page != null) {
+            return page;
         } else {
             HeapFile dbFile = (HeapFile) Database.getCatalog().getDbFile(pid.getTableId());
             HeapPage newPage = (HeapPage) dbFile.readPage(pid);
-            addNewPage(pid, newPage);
+            page = addNewPage(pid, newPage);
+            // 如果有需要evict的page，flush它
+            if (page != null) {
+                try {
+                    flushPage(page);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
             return newPage;
         }
     }
 
-    // NOTE(hgao): 应该要实现一个LRU cache，但是目前就先这样吧
-    private void addNewPage(PageId pid, HeapPage newPage) {
-        id2page.put(pid, newPage);
+    // NOTE(hgao): 实现了lru cache
+    private Page addNewPage(PageId pid, HeapPage newPage) {
+        return id2page.put(pid, newPage);
     }
 
     /**
@@ -172,7 +183,7 @@ public class BufferPool {
     }
 
     /**
-     * NOTE(hgao): 刷新到磁盘
+     * NOTE(hgao): 刷新到磁盘，这里只是为了测试使用，实际的数据库中不应该使用到这个操作
      * Flush all dirty pages to disk.
      * NB: Be careful using this routine -- it writes dirty data to disk so will
      * break simpledb if running in NO STEAL mode.
@@ -195,16 +206,23 @@ public class BufferPool {
     }
 
     /**
+     * 将指定的page刷新到磁盘
+     * 因为已经将page驱逐了，从id2page中是找不到这个page的，不如直接flush page
      * Flushes a certain page to disk
      *
-     * @param pid an ID indicating the page to flush
+     * @param page page to be flushed
      */
-    private synchronized void flushPage(PageId pid) throws IOException {
+    private synchronized void flushPage(Page page) throws IOException {
         // some code goes here
         // not necessary for proj1
+        HeapPage dirtyPage = (HeapPage) page;
+        HeapFile table = (HeapFile) Database.getCatalog().getDbFile(dirtyPage.getId().getTableId());
+        table.writePage(dirtyPage);
+        dirtyPage.markDirty(false, null);
     }
 
     /**
+     * 根据transactionId刷新到磁盘
      * Write all pages of the specified transaction to disk.
      */
     public synchronized void flushPages(TransactionId tid) throws IOException {
@@ -213,12 +231,18 @@ public class BufferPool {
     }
 
     /**
+     * 该方法在LRUCache中实现了
      * Discards a page from the buffer pool.
      * Flushes the page to disk to ensure dirty pages are updated on disk.
      */
+    @Deprecated
     private synchronized void evictPage() throws DbException {
         // some code goes here
         // not necessary for proj1
+    }
+
+    public int cacheSize() {
+        return id2page.size();
     }
 
 }
