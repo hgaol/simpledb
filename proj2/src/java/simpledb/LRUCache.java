@@ -14,8 +14,8 @@ public class LRUCache<K, V> {
 
     public LRUCache(int capacity) {
         this.capacity = capacity;
-        head = new DLNode(null, null);
-        tail = new DLNode(null, null);
+        head = new DLNode<>(null, null);
+        tail = new DLNode<>(null, null);
         head.next = tail;
         tail.pre = head;
     }
@@ -39,6 +39,7 @@ public class LRUCache<K, V> {
      * @param v new value
      * @return if full, evicted value, else return null
      */
+    @SuppressWarnings("unchecked")
     public V put(K k, V v) {
         V ret = null;
         DLNode node = null;

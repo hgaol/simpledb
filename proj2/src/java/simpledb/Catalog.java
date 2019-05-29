@@ -158,7 +158,10 @@ public class Catalog {
      */
     public void loadSchema(String catalogFile) {
         String line = "";
-        String baseFolder = new File(catalogFile).getParent();
+        // schema 和 data的数据格式一致
+        // 也就是一个data.dat文件对应一个table
+        String absPath = new File(catalogFile).getAbsolutePath();
+        String baseFolder = new File(absPath).getParent();
         try {
             BufferedReader br = new BufferedReader(new FileReader(new File(catalogFile)));
 
@@ -195,6 +198,7 @@ public class Catalog {
                 String[] namesAr = names.toArray(new String[0]);
                 TupleDesc t = new TupleDesc(typeAr, namesAr);
                 HeapFile tabHf = new HeapFile(new File(baseFolder + "/" + name + ".dat"), t);
+//                System.out.println(baseFolder + "/" + name + ".dat");
                 addTable(tabHf, name, primaryKey);
                 System.out.println("Added table : " + name + " with schema " + t);
             }

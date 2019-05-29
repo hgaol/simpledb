@@ -135,6 +135,10 @@ public class TupleDesc implements Serializable {
         // some code goes here
         if (null == name) throw new NoSuchElementException("null is not a valid field name");
 
+        String[] list = name.split("[.]");
+        if (list.length > 1) {
+            name = list[list.length-1];
+        }
         for (int i = 0; i < tdItems.length; i++) {
             if (name.equals(tdItems[i].fieldName)) {
                 return i;
@@ -226,6 +230,12 @@ public class TupleDesc implements Serializable {
      */
     public String toString() {
         // some code goes here
-        return "";
+        StringBuffer result = new StringBuffer();
+        result.append("< ");
+        for (TDItem tdItem : tdItems) {
+            result.append(tdItem.toString() + " ");
+        }
+        result.append(">");
+        return result.toString();
     }
 }

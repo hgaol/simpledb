@@ -3,8 +3,6 @@ package simpledb;
 import java.io.*;
 import java.util.*;
 
-import static com.sun.tools.javac.jvm.ByteCodes.ret;
-
 /**
  * HeapFile主要保存了某个table的TupleDesc，以及文件实例
  * HeapFile is an implementation of a DbFile that stores a collection of tuples

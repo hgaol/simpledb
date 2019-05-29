@@ -93,7 +93,7 @@ public class Tuple implements Serializable {
         for (Field field : fields) {
             sb.append(field.toString()).append("\t");
         }
-        sb.replace(sb.length() - 1, sb.length(), "\n");
+        sb.replace(sb.length() - 1, sb.length(), "");
 
         return sb.toString();
     }

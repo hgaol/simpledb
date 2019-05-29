@@ -21,7 +21,7 @@ public class HeapFileReadTest extends SimpleDbTestBase {
      */
     @Before
     public void setUp() throws Exception {
-        hf = SystemTestUtil.createRandomHeapFile(2, 40, null, null);
+        hf = SystemTestUtil.createRandomHeapFile(2, 20, null, null);
         td = Utility.getTupleDesc(2);
         tid = new TransactionId();
     }
