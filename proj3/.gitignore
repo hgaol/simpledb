@@ -1,0 +1,10 @@
+.idea
+*.iml
+bin
+.classpath
+.project
+dist
+log
+.DS_Store
+
+*.dat
