@@ -193,6 +193,7 @@ public class JoinOptimizer {
     }
 
     /**
+     * hgao: 返回最优解
      * Compute a logical, reasonably efficient join on the specified tables. See
      * project description for hints on how this should be implemented.
      * 

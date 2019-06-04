@@ -132,6 +132,7 @@ public class Parser {
 
     }
 
+    // NOTE(hgao):
     public LogicalPlan parseQueryLogicalPlan(TransactionId tid, ZQuery q)
             throws IOException, Zql.ParseException, simpledb.ParsingException {
         @SuppressWarnings("unchecked")
@@ -273,6 +274,9 @@ public class Parser {
     private Transaction curtrans = null;
     private boolean inUserTrans = false;
 
+    /**
+     * NOTE(hgao): 处理query，返回query后，由主函数执行excute
+     */
     public Query handleQueryStatement(ZQuery s, TransactionId tId)
             throws TransactionAbortedException, DbException, IOException,
             simpledb.ParsingException, Zql.ParseException {
@@ -280,6 +284,7 @@ public class Parser {
         Query query = new Query(tId);
 
         LogicalPlan lp = parseQueryLogicalPlan(tId, s);
+        // hgao: project3 主要实现的入口
         DbIterator physicalPlan = lp.physicalPlan(tId,
                 TableStats.getStatsMap(), explain);
         query.setPhysicalPlan(physicalPlan);
@@ -502,6 +507,10 @@ public class Parser {
         }
     }
 
+    /**
+     * 用户提交的query，TableStats会用来分析
+     * @param is
+     */
     public void processNextStatement(InputStream is) {
         try {
             ZqlParser p = new ZqlParser(is);
@@ -534,6 +543,7 @@ public class Parser {
                                         + "\n -- parser only handles SQL transactions, insert, delete, and select statements");
                     }
                     if (query != null)
+                        // NOTE(hgao): 执行query
                         query.execute();
 
                     if (!inUserTrans && curtrans != null) {

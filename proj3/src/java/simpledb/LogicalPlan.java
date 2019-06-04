@@ -24,6 +24,8 @@ import java.util.NoSuchElementException;
  */
 public class LogicalPlan {
     private Vector<LogicalJoinNode> joins;
+    // 要扫描的tables
+    // 就是 select xx from table1, table2, ..., tablen
     private Vector<LogicalScanNode> tables;
     private Vector<LogicalFilterNode> filters;
     private HashMap<String, DbIterator> subplanMap;
@@ -296,6 +298,7 @@ public class LogicalPlan {
     }
 
     /**
+     * hgao: 这个方法是proj3的总览
      * Convert this LogicalPlan into a physicalPlan represented by a {@link DbIterator}.  Attempts to
      * find the optimal plan by using {@link JoinOptimizer#orderJoins} to order the joins in the plan.
      *
@@ -329,10 +332,11 @@ public class LogicalPlan {
             String baseTableName = Database.getCatalog().getTableName(table.t);
             statsMap.put(baseTableName, baseTableStats.get(baseTableName));
             filterSelectivities.put(table.alias, 1.0);
-
         }
 
         Iterator<LogicalFilterNode> filterIt = filters.iterator();
+        // 处理filter的情况，即 where xx.id = 1 and xx.name = 'xxx', xx.age > 16 这种
+        // 也就是先对filter情况进行了处理，覆盖原来的table，之后的tuples都是已经filter过的
         while (filterIt.hasNext()) {
             LogicalFilterNode lf = filterIt.next();
             DbIterator subplan = subplanMap.get(lf.tableAlias);
@@ -362,10 +366,12 @@ public class LogicalPlan {
             } catch (NoSuchElementException e) {
                 throw new ParsingException("Unknown field " + lf.fieldQuantifiedName);
             }
+            // 覆盖原来的table
             subplanMap.put(lf.tableAlias, new Filter(p, subplan));
 
             TableStats s = statsMap.get(Database.getCatalog().getTableName(this.getTableId(lf.tableAlias)));
 
+            // 计算filter的cost
             double sel = s.estimateSelectivity(subplan.getTupleDesc().fieldNameToIndex(lf.fieldQuantifiedName), lf.p, f);
             filterSelectivities.put(lf.tableAlias, filterSelectivities.get(lf.tableAlias) * sel);
 
@@ -374,9 +380,11 @@ public class LogicalPlan {
 
         JoinOptimizer jo = new JoinOptimizer(this, joins);
 
+        // hgao: project3的重点!! 主要需要实现的方法，入口方法
         joins = jo.orderJoins(statsMap, filterSelectivities, explain);
 
         Iterator<LogicalJoinNode> joinIt = joins.iterator();
+        // hgao: 这时候开始用优化后的join顺序尽心join
         while (joinIt.hasNext()) {
             LogicalJoinNode lj = joinIt.next();
             DbIterator plan1;
@@ -430,10 +438,12 @@ public class LogicalPlan {
 
         }
 
+        // 最后只剩1个，即join后的结果
         if (subplanMap.size() > 1) {
             throw new ParsingException("Query does not include join expressions joining all nodes!");
         }
 
+        // 最主要的join优化解决了，剩下就是select和一些其他问题
         DbIterator node = (DbIterator) (subplanMap.entrySet().iterator().next().getValue());
 
         //walk the select list, to determine order in which to project output fields
