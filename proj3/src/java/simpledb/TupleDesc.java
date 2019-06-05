@@ -47,7 +47,25 @@ public class TupleDesc implements Serializable {
      */
     public Iterator<TDItem> iterator() {
         // some code goes here
-        return null;
+        return new TDItemIterator();
+    }
+
+    private class TDItemIterator implements Iterator<TDItem> {
+
+        private int pos = 0;
+
+        @Override
+        public boolean hasNext() {
+            return pos < tdItems.length;
+        }
+
+        @Override
+        public TDItem next() {
+            if (!hasNext()) {
+                throw new NoSuchElementException();
+            }
+            return tdItems[pos++];
+        }
     }
 
     private static final long serialVersionUID = 1L;
@@ -135,10 +153,6 @@ public class TupleDesc implements Serializable {
         // some code goes here
         if (null == name) throw new NoSuchElementException("null is not a valid field name");
 
-        String[] list = name.split("[.]");
-        if (list.length > 1) {
-            name = list[list.length-1];
-        }
         for (int i = 0; i < tdItems.length; i++) {
             if (name.equals(tdItems[i].fieldName)) {
                 return i;

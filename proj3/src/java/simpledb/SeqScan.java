@@ -15,6 +15,7 @@ public class SeqScan implements DbIterator {
     private int tableid;
     private String tableAlias;
     private DbFileIterator iterator;
+    private TupleDesc td;
 
     /**
      * Creates a sequential scan over the specified table as a part of the
@@ -81,6 +82,7 @@ public class SeqScan implements DbIterator {
     }
 
     /**
+     * 原来是在这里把table alias加上去的啊，找了半天
      * Returns the TupleDesc with field names from the underlying HeapFile,
      * prefixed with the tableAlias string from the constructor. This prefix
      * becomes useful when joining tables containing a field(s) with the same
@@ -92,7 +94,22 @@ public class SeqScan implements DbIterator {
     @Override
     public TupleDesc getTupleDesc() {
         // some code goes here
-        return Database.getCatalog().getTupleDesc(tableid);
+        if (td != null) {
+            return td;
+        }
+        TupleDesc desc = Database.getCatalog().getTupleDesc(tableid);
+        int fieldNum = desc.numFields();
+        Type[] types = new Type[fieldNum];
+        String[] names = new String[fieldNum];
+        for (int i = 0; i < fieldNum; i++) {
+            types[i] = desc.getFieldType(i);
+            //按照构造器中所说，为了防止意外的null值使此类停止工作，故要加入一些判断
+            String prefix = getAlias() == null ? "null." : getAlias() + ".";
+            String fieldName = desc.getFieldName(i);
+            fieldName = fieldName == null ? "null" : fieldName;
+            names[i] = prefix + fieldName;
+        }
+        return new TupleDesc(types, names);
     }
 
     @Override
