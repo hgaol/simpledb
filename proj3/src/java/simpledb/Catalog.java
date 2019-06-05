@@ -160,6 +160,7 @@ public class Catalog {
         String line = "";
         // schema 和 data的数据格式一致
         // 也就是一个data.dat文件对应一个table
+        // schema和data必须放在同一文件夹, line 201
         String absPath = new File(catalogFile).getAbsolutePath();
         String baseFolder = new File(absPath).getParent();
         try {
