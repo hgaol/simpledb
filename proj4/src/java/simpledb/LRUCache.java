@@ -1,7 +1,9 @@
 package simpledb;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 /**
  * LRUCache实现
@@ -91,9 +93,35 @@ public class LRUCache<K, V> {
         K key;
         V value;
         DLNode pre, next;
+
         public DLNode(K k, V v) {
             key = k;
             value = v;
+        }
+    }
+
+    /**
+     * @return 当前缓存的所有value
+     */
+    public Iterator<V> iterator() {
+        return new LruIter();
+    }
+
+    protected class LruIter implements Iterator<V> {
+        DLNode n = head;
+
+        @Override
+        public synchronized boolean hasNext() {
+            return n.next != tail;
+        }
+
+        @Override
+        public synchronized V next() {
+            if (!hasNext()) {
+                throw new NoSuchElementException();
+            }
+            n = n.next;
+            return (V) n.value;
         }
     }
 

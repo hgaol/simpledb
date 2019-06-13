@@ -27,8 +27,11 @@ public class BufferPool {
 
     private int maxPages;
 
-//    private Map<PageId, Page> id2page;
+    //    private Map<PageId, Page> id2page;
     private LRUCache<PageId, Page> id2page;
+
+    private final LockManager lockManager;
+    private final long SLEEP_INTERVAL;
 
     /**
      * Creates a BufferPool that caches up to numPages pages.
@@ -40,6 +43,8 @@ public class BufferPool {
         maxPages = numPages;
         // 不使用hashmap了，使用lru cache
         id2page = new LRUCache<>(maxPages);
+        lockManager = new LockManager();
+        SLEEP_INTERVAL = 500;
     }
 
     /**
@@ -60,6 +65,21 @@ public class BufferPool {
     public Page getPage(TransactionId tid, PageId pid, Permissions perm)
             throws TransactionAbortedException, DbException {
         // some code goes here
+        boolean result = (perm == Permissions.READ_ONLY) ? lockManager.grantSLock(tid, pid) : lockManager.grantXLock(tid, pid);
+        // 下面的while循环就是在模拟等待过程，如果没有获取到锁，隔一段时间就检查一次是否申请到锁了，还没申请到就检查是否陷入死锁
+        while (!result) {
+            if (lockManager.deadlockOccurred(tid, pid)) {
+                throw new TransactionAbortedException();
+            }
+            try {
+                Thread.sleep(SLEEP_INTERVAL);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            //sleep之后再次判断result
+            result = (perm == Permissions.READ_ONLY) ? lockManager.grantSLock(tid, pid) : lockManager.grantXLock(tid, pid);
+        }
+
         // 命中返回，未命中则加载
         Page page = id2page.get(pid);
         if (page != null) {
@@ -97,6 +117,11 @@ public class BufferPool {
     public void releasePage(TransactionId tid, PageId pid) {
         // some code goes here
         // not necessary for proj1
+        if (!lockManager.unlock(tid, pid)) {
+            // pid does not locked by any transaction
+            // or tid  dose not lock the page pid
+            throw new IllegalArgumentException();
+        }
     }
 
     /**
@@ -115,7 +140,7 @@ public class BufferPool {
     public boolean holdsLock(TransactionId tid, PageId p) {
         // some code goes here
         // not necessary for proj1
-        return false;
+        return lockManager.getLockState(tid, p) != null;
     }
 
     /**
@@ -191,7 +216,13 @@ public class BufferPool {
     public synchronized void flushAllPages() throws IOException {
         // some code goes here
         // not necessary for proj1
-
+        Iterator<Page> it = id2page.iterator();
+        while (it.hasNext()) {
+            Page p = it.next();
+            if (p.isDirty() != null) {
+                flushPage(p);
+            }
+        }
     }
 
     /**
