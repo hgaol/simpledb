@@ -87,13 +87,26 @@ public class BufferPool {
         } else {
             HeapFile dbFile = (HeapFile) Database.getCatalog().getDbFile(pid.getTableId());
             HeapPage newPage = (HeapPage) dbFile.readPage(pid);
-            page = addNewPage(pid, newPage);
             // 如果有需要evict的page，flush它
-            if (page != null) {
-                try {
-                    flushPage(page);
-                } catch (IOException e) {
-                    e.printStackTrace();
+            // hgao: project 4，这里如果一个page被还大于一个transaction持有且dirty，则不evict它，换一个
+            // 如果buffer pool里面的全部都是dirty的且被持有，报错DbException
+            page = addNewPage(pid, newPage);
+            int count = id2page.size();
+            while (true) {
+                if (page != null && page.isDirty() == null) {
+                    // lru cache 已满，但是未被
+                    try {
+                        flushPage(page);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    break;
+                } else if (page != null && page.isDirty() != null) {
+                    if (count-- <= 0) throw new DbException("All pages are dirty and held by transactions.");
+                    page = addNewPage(page.getId(), (HeapPage) page);
+                } else {
+                    // lru cache还未满
+                    break;
                 }
             }
             return newPage;
@@ -154,6 +167,36 @@ public class BufferPool {
             throws IOException {
         // some code goes here
         // not necessary for proj1
+        lockManager.releaseTransactionLocks(tid);
+        if (commit) {
+            flushPages(tid);
+        } else {
+            revertTransactionAction(tid);
+        }
+    }
+
+    /**
+     * 在事务回滚时，撤销该事务对page造成的改变
+     *
+     * @param tid
+     */
+    public synchronized void revertTransactionAction(TransactionId tid) {
+        Iterator<Page> it = id2page.iterator();
+        while (it.hasNext()) {
+            Page p = it.next();
+            if (p.isDirty() != null && p.isDirty().equals(tid)) {
+                // revertPage
+                if (!id2page.contains(p.getId())) {
+                    throw new IllegalArgumentException();
+                }
+                // 访问磁盘获得该page
+                PageId pid = p.getId();
+                HeapFile table = (HeapFile) Database.getCatalog().getDbFile(pid.getTableId());
+                HeapPage originalPage = (HeapPage) table.readPage(pid);
+                // 更新buffer pool中的page
+                id2page.put(pid, originalPage);
+            }
+        }
     }
 
     /**
@@ -259,6 +302,16 @@ public class BufferPool {
     public synchronized void flushPages(TransactionId tid) throws IOException {
         // some code goes here
         // not necessary for proj1
+        Iterator<Page> it = id2page.iterator();
+        while (it.hasNext()) {
+            Page p = it.next();
+            if (p.isDirty() != null && p.isDirty().equals(tid)) {
+                flushPage(p);
+                if (p.isDirty() == null) {
+                    p.setBeforeImage();
+                }
+            }
+        }
     }
 
     /**

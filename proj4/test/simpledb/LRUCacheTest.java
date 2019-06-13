@@ -3,6 +3,8 @@ package simpledb;
 import org.junit.Test;
 import org.omg.CORBA.INTERNAL;
 
+import java.util.Iterator;
+
 import static org.junit.Assert.*;
 
 public class LRUCacheTest {
@@ -25,5 +27,21 @@ public class LRUCacheTest {
 
     @Test
     public void put() {
+        LRUCache<Integer, Integer> cache = new LRUCache<>(2);
+        cache.put(1, 2);
+        cache.put(2, 2);
+        cache.put(1, 2);
+        cache.put(3, 2);
+        cache.put(1, 2);
+        cache.put(4, 2);
+        cache.put(1, 2);
+        cache.put(5, 2);
+        cache.put(1, 2);
+        cache.get(1);
+        Iterator<Integer> iter = cache.iterator();
+        while (iter.hasNext()) {
+            iter.next();
+        }
+        System.out.println("aha");
     }
 }

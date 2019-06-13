@@ -31,7 +31,7 @@ public class LRUCache<K, V> {
         if (!map.containsKey(key)) return null;
         DLNode node = map.get(key);
         // connect pre and next
-        removeNode(tail.pre);
+        removeNode(node);
         insertHead(node);
         return (V) node.value;
     }
@@ -48,6 +48,7 @@ public class LRUCache<K, V> {
         if (map.containsKey(k)) {
             node = map.get(k);
             node.value = v;
+            removeNode(node);
         } else {
             node = new DLNode(k, v);
             map.put(k, node);
@@ -58,6 +59,10 @@ public class LRUCache<K, V> {
             ret = (V) removeNode(tail.pre).value;
         }
         return ret;
+    }
+
+    public boolean contains(K k) {
+        return map.containsKey(k);
     }
 
     public int size() {
