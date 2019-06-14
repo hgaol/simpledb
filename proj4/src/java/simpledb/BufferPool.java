@@ -81,6 +81,7 @@ public class BufferPool {
         }
 
         // 命中返回，未命中则加载
+        // 如果new page不在buffer pool中，是没有意义的
         Page page = id2page.get(pid);
         if (page != null) {
             return page;
@@ -108,6 +109,9 @@ public class BufferPool {
                     // lru cache还未满
                     break;
                 }
+            }
+            if (!id2page.contains(pid)) {
+                throw new DbException("All pages are dirty and held by transactions.");
             }
             return newPage;
         }
@@ -145,6 +149,7 @@ public class BufferPool {
     public void transactionComplete(TransactionId tid) throws IOException {
         // some code goes here
         // not necessary for proj1
+        transactionComplete(tid, true);
     }
 
     /**
