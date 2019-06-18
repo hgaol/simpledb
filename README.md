@@ -24,7 +24,7 @@ In this project, you will implement a simple locking-based transaction system in
 
 ## Conclution
 
-[SUMMARY]()
+[SUMMARY](https://github.com/hgaol/simpledb/blob/master/SUMMARY.md)
 
 - Implemented the classes to manage tuples, namely Tuple, TupleDesc .
 - Only support integer and fixed length string fields.

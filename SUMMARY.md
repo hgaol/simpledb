@@ -1,4 +1,4 @@
-# simpledb summary
+# SUMMARY
 
 ## Project 1
 project1 实现了很多的Class来表示元组等，这里我打算直接从一个类似SQL的入口类来说名proj1做了什么事情，这个入口类包含了大多数的proj1的实现。
