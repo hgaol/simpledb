@@ -275,7 +275,9 @@ public class JoinOptimizer {
             printJoins(joins, pc, stats, filterSelectivities);
         }
         // 返回joins的最优解
-        return pc.getOrder(new HashSet<>(joins));
+        Vector<LogicalJoinNode> ret = pc.getOrder(new HashSet<>(joins));
+        if (ret == null) return new Vector<>();
+        else return ret;
     }
 
     // ===================== Private Methods =================================

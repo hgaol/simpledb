@@ -17,8 +17,6 @@ import java.util.*;
 
 public class Catalog {
 
-    private List<Table> tables;
-
     private Map<Integer, Table> id2table;
 
     private Map<String, Integer> name2id;
